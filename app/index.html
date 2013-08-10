@@ -3,8 +3,10 @@
     <head>
         <title>Graffissimo</title>
         <style>
-            body{ background-color: gray; }
+            body{ background-color: gray; margin-top:60px;}
             canvas{ background-color:white; }
+            .container { width:800px; height:623px; }
+            .titleBar { width:184px; height:23px; float:left;}
         </style>
         <script>
             try {
@@ -265,9 +267,16 @@
     </head>
     <body onload="initializeGraffissimo()">
         <div align="center"> 
-            <canvas id="my-canvas" width="800" height="600">
-                Your browser does not support the HTML5 canvas element.
-            </canvas>
+            <div class="container">
+                <div class="titleBar">
+                    <img src="title.png">
+                </div>
+                <div>
+                    <canvas id="my-canvas" width="800" height="600">
+                        Your browser does not support the HTML5 canvas element.
+                    </canvas>
+                </div>
+            </div>
         </div>
     </body>
 </html>
