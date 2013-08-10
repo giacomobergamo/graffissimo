@@ -1,58 +1,58 @@
 <!doctype html>
 <html>
-<head>
-	<title>Graffissimo</title>
-	<style>
-	body{ background-color: gray; }
-	canvas{ background-color:white; }
-	</style>
-	<script id="shader-vs" type="x-shader/x-vertex">
-	attribute vec3 aVertexPosition;
-	void main(void) {
-		gl_Position = vec4(aVertexPosition, 1.0);
-		gl_PointSize = 5.0;
-	} 
-	</script>
-	<script id="shader-fs" type="x-shader/x-fragment">
-	void main(void) {
-		gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-	} 
-	</script>
-	<script>
+	<head>
+		<title>Graffissimo</title>
+		<style>
+			body{ background-color: gray; }
+			canvas{ background-color:white; }
+		</style>
+		<script id="shader-vs" type="x-shader/x-vertex">
+                 attribute vec3 aVertexPosition;
+                 void main(void) {
+                 	gl_Position = vec4(aVertexPosition, 1.0);
+                 	gl_PointSize = 5.0;
+                 } 
+		</script>
+        <script id="shader-fs" type="x-shader/x-fragment">
+                 void main(void) {
+                 	gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+                 } 
+		</script>
+		<script>
 
-	var gl = null, 
-	canvas = null, 
-	glProgram = null, 
-	fragmentShader = null, 
-	vertexShader = null;
+			var gl = null, 
+				canvas = null, 
+				glProgram = null, 
+				fragmentShader = null, 
+				vertexShader = null;
 
-	var mouseX, mouseY, mouseXPrev, mouseYPrev;
+			var mouseX, mouseY, mouseXPrev, mouseYPrev;
 
-	var painting = false;
-	var firstPaint = true;
+			var painting = false;
+			var firstPaint = true;
 
-	var vertexPositionAttribute = null, 
-	lineVerticesBuffer = null;
+        	var vertexPositionAttribute = null, 
+        		lineVerticesBuffer = null;
 
 
-	function getMousePos(canvas, evt) {
-		var rect = canvas.getBoundingClientRect();
-		return {
+      		function getMousePos(canvas, evt) {
+        		var rect = canvas.getBoundingClientRect();
+        		return {
 
         			// Convert coordinates to be between -1 and 1 for GL
-        			x: (((evt.clientX - rect.left)/rect.width) *2) - 1,
-        			y: ((((evt.clientY - rect.top)/rect.height) *2) - 1) * -1
-        		};
-        	}
+          			x: (((evt.clientX - rect.left)/rect.width) *2) - 1,
+          			y: ((((evt.clientY - rect.top)/rect.height) *2) - 1) * -1
+       			};
+      		}
 
-        	function initializeWebGL()
-        	{
-        		canvas = document.getElementById("my-canvas");
+			function initializeWebGL()
+			{
+				canvas = document.getElementById("my-canvas");
 
-        		canvas.addEventListener('mousemove', function(evt) {
+				canvas.addEventListener('mousemove', function(evt) {
 
-        			if (painting)
-        			{
+					if (painting)
+					{
         				var mousePos = getMousePos(canvas, evt);
         				//var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
         				//alert(message);
@@ -73,22 +73,22 @@
         				}
 
         				setupLineBuffer(mouseXPrev, mouseYPrev, mouseX, mouseY);
-        				drawScene();
-        			}
-        		}, false);
+						drawScene();
+					}
+      			}, false);
 
-        		canvas.addEventListener('mousedown', function(evt) {
+      			canvas.addEventListener('mousedown', function(evt) {
         			painting = true;
         			firstPaint = true;
 
-        		}, false);
+      			}, false);
 
-        		canvas.addEventListener('mouseup', function(evt) {
+      			canvas.addEventListener('mouseup', function(evt) {
         			painting = false;
 
-        		}, false);
+      			}, false);
 
-        		try {
+				try {
 					// Important to set the preserveDrawingBuffer flag to true when getting the context, otherwise 
 					// buffer cleared each time you draw
 					// http://asalga.wordpress.com/2011/08/01/using-webgl-readpixels-turn-on-preservedrawingbuffer/
@@ -120,11 +120,11 @@
 			{
 				// Access the scripts above for the shader sources
 				var fs_source = document.getElementById('shader-fs').innerHTML,
-				vs_source = document.getElementById('shader-vs').innerHTML;
+                  	vs_source = document.getElementById('shader-vs').innerHTML;
 
                 // Compile shaders
-                vertexShader = makeShader(vs_source, gl.VERTEX_SHADER);
-                fragmentShader = makeShader(fs_source, gl.FRAGMENT_SHADER);
+        		vertexShader = makeShader(vs_source, gl.VERTEX_SHADER);
+        		fragmentShader = makeShader(fs_source, gl.FRAGMENT_SHADER);
 
         		// Create program
         		glProgram = gl.createProgram();
@@ -134,23 +134,23 @@
         		gl.attachShader(glProgram, fragmentShader);
         		gl.linkProgram(glProgram);
         		if (!gl.getProgramParameter(glProgram, gl.LINK_STATUS)) {
-        			alert("ERROR: Unable to initialize the shader program.");
-        		}
+                	alert("ERROR: Unable to initialize the shader program.");
+				}
 
         		// Use program
         		gl.useProgram(glProgram);
 
-        	}
+			}
 
-        	function makeShader(src, type)
-        	{
+			function makeShader(src, type)
+			{
 
 				// Compile the vertex shader
 				var shader = gl.createShader(type);
 				gl.shaderSource(shader, src);
 				gl.compileShader(shader);
 				if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-					alert("Error compiling shader: " + gl.getShaderInfoLog(shader));
+       				alert("Error compiling shader: " + gl.getShaderInfoLog(shader));
 				}
 				return shader;
 			}
@@ -176,13 +176,13 @@
 				//gl.drawArrays(gl.POINTS, 0, 2);
 
 			}
-			</script>
-		</head>
-		<body onload="initializeWebGL()">
-			<div align="center"> 
-				<canvas id="my-canvas" width="800" height="600">
-					Your browser does not support the HTML5 canvas element.
-				</canvas>
-			</div>
-		</body>
-		</html>
+		</script>
+	</head>
+	<body onload="initializeWebGL()">
+		<div align="center"> 
+			<canvas id="my-canvas" width="800" height="600">
+				Your browser does not support the HTML5 canvas element.
+			</canvas>
+		</div>
+	</body>
+</html>
