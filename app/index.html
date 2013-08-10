@@ -6,6 +6,27 @@
             body{ background-color: gray; }
             canvas{ background-color:white; }
         </style>
+        <script>
+            try {
+                var sock = new WebSocket("ws://localhost:3000/sock")
+                // sock.binaryType = 'blob'; // can set it to 'blob' or 'arraybuffer
+                console.log("Websocket - status: " + sock.readyState);
+                sock.onopen = function(m) {
+                    console.log("CONNECTION opened..." + this.readyState);
+                };
+                sock.onmessage = function(m) {
+                    console.log("Received a message: " + m.data);
+                };
+                sock.onerror = function(m) {
+                    console.log("Error occured sending..." + m.data);
+                };
+                sock.onclose = function(m) {
+                    console.log("Disconnected - status " + this.readyState);
+                };
+            } catch(exception) {
+                console.log(exception);
+            }
+        </script>
         <script id="shader-vs" type="x-shader/x-vertex">
 
             attribute vec3 aVertexPosition;
@@ -101,6 +122,9 @@
                 canvas.addEventListener('mousedown', function(evt) {
                     painting = true;
                     firstPaint = true;
+
+                    sock.send("[" + e.x + ", " + e.y + "]");
+
                 }, false);
 
                 canvas.addEventListener('mouseup', function(evt) {
