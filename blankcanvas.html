@@ -1,18 +1,79 @@
 <!doctype html>
 <html>
 	<head>
-		<title>A blank canvas</title>
+		<title>Graffisimo</title>
 		<style>
 			body{ background-color: gray; }
 			canvas{ background-color:white; }
 		</style>
+		<script id="shader-vs" type="x-shader/x-vertex">
+                 attribute vec3 aVertexPosition;
+                 void main(void) {
+                 	gl_Position = vec4(aVertexPosition, 1.0);
+                 } 
+		</script>
+        <script id="shader-fs" type="x-shader/x-fragment">
+                 void main(void) {
+                 	gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+                 } 
+		</script>
 		<script>
-			window.onload = setupWebGL;
-			var gl = null;
 
-			function setupWebGL()
+			var gl = null, 
+				canvas = null, 
+				glProgram = null, 
+				fragmentShader = null, 
+				vertexShader = null;
+
+			var mouseX = 0.5, mouseY = 0.5;
+			var mouseXPrev = 0.0, mouseYPrev = 0.0;
+			var loaded = false;
+
+			//var lineVerticeArray = new Array(20);
+			//var verticesCount = 0;
+
+        	var vertexPositionAttribute = null, 
+        		trianglesVerticeBuffer = null;
+
+        	function writeMessage(canvas, message) {
+        		var context = canvas.getContext('2d');
+        		context.clearRect(0, 0, canvas.width, canvas.height);
+        		context.font = '18pt Calibri';
+        		context.fillStyle = 'black';
+        		context.fillText(message, 10, 25);
+      		}
+      		function getMousePos(canvas, evt) {
+        		var rect = canvas.getBoundingClientRect();
+        		return {
+          			x: (((evt.clientX - rect.left)/rect.width) *2) - 1,
+          			y: ((((evt.clientY - rect.top)/rect.height) *2) - 1) * -1
+       			};
+      		}
+
+			function initializeWebGL()
 			{
-				var canvas = document.getElementById("my-canvas");
+				canvas = document.getElementById("my-canvas");
+
+				canvas.addEventListener('mousemove', function(evt) {
+        			var mousePos = getMousePos(canvas, evt);
+        			var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
+        			//writeMessage(canvas, message);
+        			//alert(message);
+        			mouseXPrev = mouseX;
+        			mouseYPrev = mouseY;
+        			mouseX = mousePos.x;
+        			mouseY = mousePos.y;
+        			
+        			if (loaded)
+        			{
+        				//setupWebGL();
+
+        				setupLineBuffer(mouseXPrev, mouseYPrev, mouseX, mouseY);
+						drawScene();
+					}
+
+      			}, false);
+
 				try {
 
 					gl = canvas.getContext("webgl");
@@ -23,17 +84,127 @@
 
 				if (gl)
 				{
-					//set the clear color to red
-					gl.clearColor(1.0, 0.0, 0.0, 1.0);
-					gl.clear(gl.COLOR_BUFFER_BIT);
+					setupWebGL();
+					initializeShaders();
+					//initializeInteractions();
+					//setupBuffers();
+					setupLineBuffer(mouseX, mouseY, mouseXPrev, mouseYPrev);
+					drawScene();
+
+					//setupLineBuffer(0.1, 0.1, 0.9, 0.9);
+					//drawScene();
+
+					
+
+					loaded = true;
 
 				} else {
-					alert("mlvsd");
+					alert("ERROR: Browser does not appear to support WebGL.");
 				}
+			}
+
+			function setupWebGL()
+			{
+				// Set the clear color to black -- this is what we see before the shaders are compiled
+				gl.clearColor(0.0, 0.0, 0.0, 1.0);
+				gl.clear(gl.COLOR_BUFFER_BIT);
+
+			}
+
+			function initializeShaders()
+			{
+				// Access the scripts above for the shader sources
+				var fs_source = document.getElementById('shader-fs').innerHTML,
+                  	vs_source = document.getElementById('shader-vs').innerHTML;
+
+                // Compile shaders
+        		vertexShader = makeShader(vs_source, gl.VERTEX_SHADER);
+        		fragmentShader = makeShader(fs_source, gl.FRAGMENT_SHADER);
+
+        		// Create program
+        		glProgram = gl.createProgram();
+
+        		// Attach and link shaders to the program
+        		gl.attachShader(glProgram, vertexShader);
+        		gl.attachShader(glProgram, fragmentShader);
+        		gl.linkProgram(glProgram);
+        		if (!gl.getProgramParameter(glProgram, gl.LINK_STATUS)) {
+                	alert("ERROR: Unable to initialize the shader program.");
+				}
+
+        		// Use program
+        		gl.useProgram(glProgram);
+
+			}
+
+			function makeShader(src, type)
+			{
+
+				// Compile the vertex shader
+				var shader = gl.createShader(type);
+				gl.shaderSource(shader, src);
+				gl.compileShader(shader);
+				if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+       				alert("Error compiling shader: " + gl.getShaderInfoLog(shader));
+				}
+				return shader;
+			}
+
+			function initializeInteractions()
+			{
+				mouseX = 0.0;
+				mouseY = 0.0;
+				mouseXPrev = 0.0;
+				mouseYPrev = 0.0;
+			}
+
+			function setupBuffers()
+			{
+				var triangleVertices = [
+          		//left triangle
+         		 -0.5, 0.5, 0.0,
+           		0.0, 0.0, 0.0,
+				-0.5, -0.5, 0.0,
+				
+				//right triangle
+ 				0.5, 0.5, 0.0,
+ 				0.0, 0.0, 0.0,
+ 				0.5, -0.5, 0.0
+ 				];
+				trianglesVerticeBuffer = gl.createBuffer();
+				gl.bindBuffer(gl.ARRAY_BUFFER, trianglesVerticeBuffer);
+				gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVertices), gl.STATIC_DRAW);
+			}
+
+			function setupLineBuffer(x1,y1,x2,y2)
+			{
+
+				var lineVertices = [x1,y1,0.0,x2,y2,0.0];
+				//lineVerticeArray[verticesCount*3] = x1;
+				//lineVerticeArray[verticesCount*3 + 1] = y1;
+				//lineVerticeArray[verticesCount*3 + 2] = 0.0;
+				//verticesCount += 1;
+				//alert("array looks like" + lineVerticeArray);
+				trianglesVerticeBuffer = gl.createBuffer();
+				gl.bindBuffer(gl.ARRAY_BUFFER, trianglesVerticeBuffer);
+				gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lineVertices), gl.STATIC_DRAW);
+
+
+			}
+
+			function drawScene()
+			{
+				vertexPositionAttribute = gl.getAttribLocation(glProgram, "aVertexPosition");
+				gl.enableVertexAttribArray(vertexPositionAttribute);
+				gl.bindBuffer(gl.ARRAY_BUFFER, trianglesVerticeBuffer);
+				gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+				gl.drawArrays(gl.LINES, 0, 2);
+				//gl.drawArrays(gl.LINES, 0, verticesCount);
+
 			}
 		</script>
 	</head>
-	<body>
+	<body onload="initializeWebGL()">
 		<canvas id="my-canvas" width="400" height="300">
 			Your browser does not support the HTML5 canvas element.
 		</canvas>
