@@ -1,251 +1,236 @@
 <!doctype html>
 <html>
-	<head>
-		<title>Graffissimo</title>
-		<style>
-			body{ background-color: gray; }
-			canvas{ background-color:white; }
-		</style>
-		<script id="shader-vs" type="x-shader/x-vertex">
-                 attribute vec3 aVertexPosition;
-                 void main(void) {
-                 	gl_Position = vec4(aVertexPosition, 1.0);
-                 	gl_PointSize = 40.0;
-                 } 
-		</script>
+    <head>
+        <title>Graffissimo</title>
+        <style>
+            body{ background-color: gray; }
+            canvas{ background-color:white; }
+        </style>
+        <script id="shader-vs" type="x-shader/x-vertex">
+
+            attribute vec3 aVertexPosition;
+
+            void main(void) {
+                gl_Position = vec4(aVertexPosition, 1.0);
+                gl_PointSize = 20.0;
+            } 
+        </script>
+
         <script id="shader-fs" type="x-shader/x-fragment">
 
-        		precision mediump float;
+            precision mediump float; //setting precision of float required
+            uniform sampler2D sTexture; //the brush mask
+            uniform vec4 uColor; //the paint color
 
-        		uniform sampler2D sTexture;
+            void main(void) {
 
-        		uniform vec4 uColor;
+                //gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+                //vec4 texColor;
+                //texColor = texture2D(sTexture, gl_PointCoord);
+                //gl_FragColor = vec4(uColor) * texColor;
 
-                 void main(void) {
-                 	//gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+                gl_FragColor = vec4(uColor);
+            } 
+        </script>
+        <script>
 
-                 	//vec4 texColor;
-    				//texColor = texture2D(sTexture, gl_PointCoord);
-    				//gl_FragColor = vec4(uColor) * texColor;
+            // Global variables needed for GL
+            var gl = null, 
+                canvas = null, 
+                glProgram = null, 
+                fragmentShader = null, 
+                vertexShader = null,
+                vertexPositionAttribute = null, 
+                lineVerticesBuffer = null, 
+                texture = null;
 
-    				gl_FragColor = vec4(uColor);
-                 } 
-		</script>
-		<script>
-
-			var gl = null, 
-				canvas = null, 
-				glProgram = null, 
-				fragmentShader = null, 
-				vertexShader = null;
-
+            // Global variables to keep track of painting coords and state
 			var mouseX, mouseY, mouseXPrev, mouseYPrev;
+			var painting = false,
+			    firstPaint = true;
 
-			var painting = false;
-			var firstPaint = true;
+            function getMousePos(canvas, evt) {
+            	var rect = canvas.getBoundingClientRect();
+                return {
 
-        	var vertexPositionAttribute = null, 
-        		lineVerticesBuffer = null;
+                    // Convert coordinates to be between -1 and 1 for GL
+                    x: (((evt.clientX - rect.left)/rect.width) *2) - 1,
+                    y: ((((evt.clientY - rect.top)/rect.height) *2) - 1) * -1
+                };
+            }
 
+            function initializeWebGL()
+            {
+            	canvas = document.getElementById("my-canvas");
 
-      		function getMousePos(canvas, evt) {
-        		var rect = canvas.getBoundingClientRect();
-        		return {
+                canvas.addEventListener('mousemove', function(evt) {
 
-        			// Convert coordinates to be between -1 and 1 for GL
-          			x: (((evt.clientX - rect.left)/rect.width) *2) - 1,
-          			y: ((((evt.clientY - rect.top)/rect.height) *2) - 1) * -1
-       			};
-      		}
+                    if (painting)
+                    {
+                    	var mousePos = getMousePos(canvas, evt);
+                    	//var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
+                    	//alert(message);
+                    	mouseXPrev = mouseX;
+                    	mouseYPrev = mouseY;
+                    	mouseX = mousePos.x;
+                    	mouseY = mousePos.y;
 
-			function initializeWebGL()
-			{
-				canvas = document.getElementById("my-canvas");
+                        // If user just started paint again (holding down the mouse button) we 
+                        // don't want to create a line the joins the previous mouse position, so set previous 
+                        // equal to current
 
-				canvas.addEventListener('mousemove', function(evt) {
+                        if (firstPaint)
+                        {
+                        	mouseXPrev = mouseX;
+                        	mouseYPrev = mouseY;
+                        	firstPaint = false;
+                        }
 
-					if (painting)
-					{
-        				var mousePos = getMousePos(canvas, evt);
-        				//var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
-        				//alert(message);
-        				mouseXPrev = mouseX;
-        				mouseYPrev = mouseY;
-        				mouseX = mousePos.x;
-        				mouseY = mousePos.y;
+                        setupLineBuffer(mouseXPrev, mouseYPrev, mouseX, mouseY);
+                        drawScene();
+                    }
+                }, false);
 
-        				// If user just started paint again (holding down the mouse button) we 
-        				// don't want to create a line the joins the previous mouse position, so set previous 
-        				// equal to current
+                canvas.addEventListener('mousedown', function(evt) {
+                	painting = true;
+                	firstPaint = true;
+                }, false);
 
-        				if (firstPaint)
-        				{
-        					mouseXPrev = mouseX;
-        					mouseYPrev = mouseY;
-        					firstPaint = false;
-        				}
+                canvas.addEventListener('mouseup', function(evt) {
+                	painting = false;
+                }, false);
 
-        				setupLineBuffer(mouseXPrev, mouseYPrev, mouseX, mouseY);
-						drawScene();
-					}
-      			}, false);
+                try {
+                    // Important to set the preserveDrawingBuffer flag to true when getting the context, otherwise 
+                    // buffer cleared each time you draw
+                    // http://asalga.wordpress.com/2011/08/01/using-webgl-readpixels-turn-on-preservedrawingbuffer/
+                    gl = canvas.getContext("webgl", {preserveDrawingBuffer: true});
+                    //gl = canvas.getContext("experimental-webgl", {preserveDrawingBuffer: true});
+                    //gl.viewportWidth = canvas.width;
+                    //gl.viewportHeight = canvas.height;
+                } catch(e) {
+                }
 
-      			canvas.addEventListener('mousedown', function(evt) {
-        			painting = true;
-        			firstPaint = true;
+                if (gl)
+                {
+                    setupWebGL();
+                    initializeTexture();
+                    initializeShaders();
 
-      			}, false);
+                    // Hack to make WebGL use point sprites
+                    gl.enable(0x8642);
+                } else {
+                	alert("ERROR: Browser does not appear to support WebGL.");
+                }
+            }
 
-      			canvas.addEventListener('mouseup', function(evt) {
-        			painting = false;
+            function setupWebGL()
+            {
+                //gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
 
-      			}, false);
+                // Set the background color to black
+                gl.clearColor(0.0, 0.0, 0.0, 1.0);
+                gl.clear(gl.COLOR_BUFFER_BIT);
+                //gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            }
 
-				try {
-					// Important to set the preserveDrawingBuffer flag to true when getting the context, otherwise 
-					// buffer cleared each time you draw
-					// http://asalga.wordpress.com/2011/08/01/using-webgl-readpixels-turn-on-preservedrawingbuffer/
-					gl = canvas.getContext("webgl", {preserveDrawingBuffer: true});
-					//gl = canvas.getContext("experimental-webgl", {preserveDrawingBuffer: true});
-					//gl.viewportWidth = canvas.width;
-					//gl.viewportHeight = canvas.height;
-
-				} catch(e) {
-
-				}
-
-				if (gl)
-				{
-					setupWebGL();
-					initializeTexture();
-					initializeShaders();
-
-					// Hack!
-					gl.enable(0x8642);
-					
-
-				} else {
-					alert("ERROR: Browser does not appear to support WebGL.");
-				}
-			}
-
-			function setupWebGL()
-			{
-
-				//gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
-				
-
-				// Set the background color to black
-				gl.clearColor(0.0, 0.0, 0.0, 1.0);
-				gl.clear(gl.COLOR_BUFFER_BIT);
-				//gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-			}
-
-			function initializeShaders()
-			{
-				// Access the scripts above for the shader sources
-				var fs_source = document.getElementById('shader-fs').innerHTML,
-                  	vs_source = document.getElementById('shader-vs').innerHTML;
+            function initializeShaders()
+            {
+                // Access the scripts above for the shader sources
+                var fs_source = document.getElementById('shader-fs').innerHTML,
+                vs_source = document.getElementById('shader-vs').innerHTML;
 
                 // Compile shaders
-        		vertexShader = makeShader(vs_source, gl.VERTEX_SHADER);
-        		fragmentShader = makeShader(fs_source, gl.FRAGMENT_SHADER);
+                vertexShader = makeShader(vs_source, gl.VERTEX_SHADER);
+                fragmentShader = makeShader(fs_source, gl.FRAGMENT_SHADER);
 
-        		// Create program
-        		glProgram = gl.createProgram();
+                // Create program
+                glProgram = gl.createProgram();
 
-        		// Attach and link shaders to the program
-        		gl.attachShader(glProgram, vertexShader);
-        		gl.attachShader(glProgram, fragmentShader);
-        		gl.linkProgram(glProgram);
-        		if (!gl.getProgramParameter(glProgram, gl.LINK_STATUS)) {
-                	alert("ERROR: Unable to initialize the shader program.");
-				}
+                // Attach and link shaders to the program
+                gl.attachShader(glProgram, vertexShader);
+                gl.attachShader(glProgram, fragmentShader);
+                gl.linkProgram(glProgram);
+                if (!gl.getProgramParameter(glProgram, gl.LINK_STATUS)) {
+                    alert("ERROR: Unable to initialize the shader program.");
+                }
 
-        		// Use program
-        		gl.useProgram(glProgram);
+                // Use program
+                gl.useProgram(glProgram);
 
-        		// Set the uniform for the texture that will be applied at each point by 
-        		// the fragment shader
-        		glProgram.samplerUniform = gl.getUniformLocation(glProgram, "sTexture");
+                // Set the uniform for the texture that will be applied at each point by 
+                // the fragment shader
+                glProgram.samplerUniform = gl.getUniformLocation(glProgram, "sTexture");
 
-        		// Set the uniform for the color that will be applied to that texture
-        		glProgram.colorUniform = gl.getUniformLocation(glProgram, "uColor");
+                // Set the uniform for the color that will be applied to that texture
+                glProgram.colorUniform = gl.getUniformLocation(glProgram, "uColor");
+            }
 
-			}
+            function makeShader(src, type)
+            {
+                // Compile the vertex shader
+                var shader = gl.createShader(type);
+                gl.shaderSource(shader, src);
+                gl.compileShader(shader);
+                if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                    alert("Error compiling shader: " + gl.getShaderInfoLog(shader));
+                }
+                return shader;
+            }
 
-			function makeShader(src, type)
-			{
+            function handleLoadedTexture(texture) {
+                gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+                gl.bindTexture(gl.TEXTURE_2D, texture);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.image);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                gl.bindTexture(gl.TEXTURE_2D, null);
+            }
 
-				// Compile the vertex shader
-				var shader = gl.createShader(type);
-				gl.shaderSource(shader, src);
-				gl.compileShader(shader);
-				if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-       				alert("Error compiling shader: " + gl.getShaderInfoLog(shader));
-				}
-				return shader;
-			}
+            function initializeTexture() {
+                texture = gl.createTexture();
+                texture.image = new Image();
+                texture.image.onload = function() {
+                    handleLoadedTexture(texture)
+                }
+                texture.image.src = "smoke.gif";
+            }
 
-			function handleLoadedTexture(texture) {
-			  	gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-			  	gl.bindTexture(gl.TEXTURE_2D, texture);
-			  	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.image);
-			  	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-			  	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-			  	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-			  	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-			  	gl.bindTexture(gl.TEXTURE_2D, null);
-			}
+            function setupLineBuffer(x1,y1,x2,y2)
+            {
+                var lineVertices = [x1,y1,0.0,x2,y2,0.0];
 
+                lineVerticesBuffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, lineVerticesBuffer);
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lineVertices), gl.STATIC_DRAW);
+            }
 
-			var texture;
-  			function initializeTexture() {
-  				texture = gl.createTexture();
-  				texture.image = new Image();
-  				texture.image.onload = function() {
-  					handleLoadedTexture(texture)
-  				}
-				texture.image.src = "smoke.gif";
-			}
+            function drawScene()
+            {
+                // For drawing texture point sprite
+                //gl.enable(gl.BLEND);
+                //gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+                //gl.activeTexture(gl.TEXTURE0);
+                //gl.bindTexture(gl.TEXTURE_2D, texture);
+                //gl.uniform1i(glProgram.samplerUniform, 0);
+                gl.uniform4f(glProgram.colorUniform, 0.0, 0.5, 0.5, 1.0);
 
-			function setupLineBuffer(x1,y1,x2,y2)
-			{
-
-				var lineVertices = [x1,y1,0.0,x2,y2,0.0];
-				lineVerticesBuffer = gl.createBuffer();
-				gl.bindBuffer(gl.ARRAY_BUFFER, lineVerticesBuffer);
-				gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lineVertices), gl.STATIC_DRAW);
-
-
-			}
-
-			function drawScene()
-			{
-				// For drawing texture point sprite
-				//gl.enable(gl.BLEND);
-				//gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-				//gl.activeTexture(gl.TEXTURE0);
-				//gl.bindTexture(gl.TEXTURE_2D, texture);
-				//gl.uniform1i(glProgram.samplerUniform, 0);
-				gl.uniform4f(glProgram.colorUniform, 0.0, 0.5, 0.5, 1.0);
-
-				vertexPositionAttribute = gl.getAttribLocation(glProgram, "aVertexPosition");
-				gl.enableVertexAttribArray(vertexPositionAttribute);
-				gl.bindBuffer(gl.ARRAY_BUFFER, lineVerticesBuffer);
-				gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
-				//gl.drawArrays(gl.LINES, 0, 2);
-				gl.drawArrays(gl.POINTS, 0, 2);
-
-			}
-		</script>
-	</head>
-	<body onload="initializeWebGL()">
-		<div align="center"> 
-			<canvas id="my-canvas" width="800" height="600">
-				Your browser does not support the HTML5 canvas element.
-			</canvas>
-		</div>
-	</body>
+                vertexPositionAttribute = gl.getAttribLocation(glProgram, "aVertexPosition");
+                gl.enableVertexAttribArray(vertexPositionAttribute);
+                gl.bindBuffer(gl.ARRAY_BUFFER, lineVerticesBuffer);
+                gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+                gl.drawArrays(gl.LINES, 0, 2);
+                //gl.drawArrays(gl.POINTS, 0, 2);
+            }
+        </script>
+    </head>
+    <body onload="initializeWebGL()">
+        <div align="center"> 
+            <canvas id="my-canvas" width="800" height="600">
+                Your browser does not support the HTML5 canvas element.
+            </canvas>
+        </div>
+    </body>
 </html>
