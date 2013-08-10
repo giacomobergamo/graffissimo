@@ -6,6 +6,32 @@
 			body{ background-color: gray; }
 			canvas{ background-color:white; }
 		</style>
+		<script>
+			window.onload = setupWebGL;
+			var gl = null;
+
+			function setupWebGL()
+			{
+				var canvas = document.getElementById("my-canvas");
+				try {
+
+					gl = canvas.getContext("webgl");
+
+				} catch(e) {
+
+				}
+
+				if (gl)
+				{
+					//set the clear color to red
+					gl.clearColor(1.0, 0.0, 0.0, 1.0);
+					gl.clear(gl.COLOR_BUFFER_BIT);
+
+				} else {
+					alert("mlvsd");
+				}
+			}
+		</script>
 	</head>
 	<body>
 		<canvas id="my-canvas" width="400" height="300">
