@@ -10,6 +10,7 @@
                  attribute vec3 aVertexPosition;
                  void main(void) {
                  	gl_Position = vec4(aVertexPosition, 1.0);
+                 	gl_PointSize = 5.0;
                  } 
 		</script>
         <script id="shader-fs" type="x-shader/x-fragment">
@@ -26,6 +27,9 @@
 				vertexShader = null;
 
 			var mouseX, mouseY, mouseXPrev, mouseYPrev;
+
+			var painting = false;
+			var firstPaint = true;
 
         	var vertexPositionAttribute = null, 
         		lineVerticesBuffer = null;
@@ -46,16 +50,41 @@
 				canvas = document.getElementById("my-canvas");
 
 				canvas.addEventListener('mousemove', function(evt) {
-        			var mousePos = getMousePos(canvas, evt);
-        			//var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
-        			//alert(message);
-        			mouseXPrev = mouseX;
-        			mouseYPrev = mouseY;
-        			mouseX = mousePos.x;
-        			mouseY = mousePos.y;
 
-        			setupLineBuffer(mouseXPrev, mouseYPrev, mouseX, mouseY);
-					drawScene();
+					if (painting)
+					{
+        				var mousePos = getMousePos(canvas, evt);
+        				//var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
+        				//alert(message);
+        				mouseXPrev = mouseX;
+        				mouseYPrev = mouseY;
+        				mouseX = mousePos.x;
+        				mouseY = mousePos.y;
+
+        				// If user just started drawing again (holding down the mouse button) we 
+        				// don't want to create a line with the previous mouse position, so set previous 
+        				// equal to current
+
+        				if (firstPaint)
+        				{
+        					mouseXPrev = mouseX;
+        					mouseYPrev = mouseY;
+        					firstPaint = false;
+        				}
+
+        				setupLineBuffer(mouseXPrev, mouseYPrev, mouseX, mouseY);
+						drawScene();
+					}
+      			}, false);
+
+      			canvas.addEventListener('mousedown', function(evt) {
+        			painting = true;
+        			firstPaint = true;
+
+      			}, false);
+
+      			canvas.addEventListener('mouseup', function(evt) {
+        			painting = false;
 
       			}, false);
 
@@ -144,6 +173,7 @@
 				gl.bindBuffer(gl.ARRAY_BUFFER, lineVerticesBuffer);
 				gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
 				gl.drawArrays(gl.LINES, 0, 2);
+				//gl.drawArrays(gl.POINTS, 0, 2);
 
 			}
 		</script>
