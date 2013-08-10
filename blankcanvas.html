@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 	<head>
-		<title>Graffisimo</title>
+		<title>Graffissimo</title>
 		<style>
 			body{ background-color: gray; }
 			canvas{ background-color:white; }
@@ -25,26 +25,17 @@
 				fragmentShader = null, 
 				vertexShader = null;
 
-			var mouseX = 0.5, mouseY = 0.5;
-			var mouseXPrev = 0.0, mouseYPrev = 0.0;
-			var loaded = false;
-
-			//var lineVerticeArray = new Array(20);
-			//var verticesCount = 0;
+			var mouseX, mouseY, mouseXPrev, mouseYPrev;
 
         	var vertexPositionAttribute = null, 
-        		trianglesVerticeBuffer = null;
+        		lineVerticesBuffer = null;
 
-        	function writeMessage(canvas, message) {
-        		var context = canvas.getContext('2d');
-        		context.clearRect(0, 0, canvas.width, canvas.height);
-        		context.font = '18pt Calibri';
-        		context.fillStyle = 'black';
-        		context.fillText(message, 10, 25);
-      		}
+
       		function getMousePos(canvas, evt) {
         		var rect = canvas.getBoundingClientRect();
         		return {
+
+        			// Convert coordinates to be between -1 and 1 for GL
           			x: (((evt.clientX - rect.left)/rect.width) *2) - 1,
           			y: ((((evt.clientY - rect.top)/rect.height) *2) - 1) * -1
        			};
@@ -56,27 +47,23 @@
 
 				canvas.addEventListener('mousemove', function(evt) {
         			var mousePos = getMousePos(canvas, evt);
-        			var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
-        			//writeMessage(canvas, message);
+        			//var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
         			//alert(message);
         			mouseXPrev = mouseX;
         			mouseYPrev = mouseY;
         			mouseX = mousePos.x;
         			mouseY = mousePos.y;
-        			
-        			if (loaded)
-        			{
-        				//setupWebGL();
 
-        				setupLineBuffer(mouseXPrev, mouseYPrev, mouseX, mouseY);
-						drawScene();
-					}
+        			setupLineBuffer(mouseXPrev, mouseYPrev, mouseX, mouseY);
+					drawScene();
 
       			}, false);
 
 				try {
-
-					gl = canvas.getContext("webgl");
+					// Important to set the preserveDrawingBuffer flag to true when getting the context, otherwise 
+					// buffer cleared each time you draw
+					// http://asalga.wordpress.com/2011/08/01/using-webgl-readpixels-turn-on-preservedrawingbuffer/
+					gl = canvas.getContext("webgl", {preserveDrawingBuffer: true});
 
 				} catch(e) {
 
@@ -86,17 +73,6 @@
 				{
 					setupWebGL();
 					initializeShaders();
-					//initializeInteractions();
-					//setupBuffers();
-					setupLineBuffer(mouseX, mouseY, mouseXPrev, mouseYPrev);
-					drawScene();
-
-					//setupLineBuffer(0.1, 0.1, 0.9, 0.9);
-					//drawScene();
-
-					
-
-					loaded = true;
 
 				} else {
 					alert("ERROR: Browser does not appear to support WebGL.");
@@ -150,43 +126,12 @@
 				return shader;
 			}
 
-			function initializeInteractions()
-			{
-				mouseX = 0.0;
-				mouseY = 0.0;
-				mouseXPrev = 0.0;
-				mouseYPrev = 0.0;
-			}
-
-			function setupBuffers()
-			{
-				var triangleVertices = [
-          		//left triangle
-         		 -0.5, 0.5, 0.0,
-           		0.0, 0.0, 0.0,
-				-0.5, -0.5, 0.0,
-				
-				//right triangle
- 				0.5, 0.5, 0.0,
- 				0.0, 0.0, 0.0,
- 				0.5, -0.5, 0.0
- 				];
-				trianglesVerticeBuffer = gl.createBuffer();
-				gl.bindBuffer(gl.ARRAY_BUFFER, trianglesVerticeBuffer);
-				gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVertices), gl.STATIC_DRAW);
-			}
-
 			function setupLineBuffer(x1,y1,x2,y2)
 			{
 
 				var lineVertices = [x1,y1,0.0,x2,y2,0.0];
-				//lineVerticeArray[verticesCount*3] = x1;
-				//lineVerticeArray[verticesCount*3 + 1] = y1;
-				//lineVerticeArray[verticesCount*3 + 2] = 0.0;
-				//verticesCount += 1;
-				//alert("array looks like" + lineVerticeArray);
-				trianglesVerticeBuffer = gl.createBuffer();
-				gl.bindBuffer(gl.ARRAY_BUFFER, trianglesVerticeBuffer);
+				lineVerticesBuffer = gl.createBuffer();
+				gl.bindBuffer(gl.ARRAY_BUFFER, lineVerticesBuffer);
 				gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lineVertices), gl.STATIC_DRAW);
 
 
@@ -196,17 +141,18 @@
 			{
 				vertexPositionAttribute = gl.getAttribLocation(glProgram, "aVertexPosition");
 				gl.enableVertexAttribArray(vertexPositionAttribute);
-				gl.bindBuffer(gl.ARRAY_BUFFER, trianglesVerticeBuffer);
+				gl.bindBuffer(gl.ARRAY_BUFFER, lineVerticesBuffer);
 				gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
 				gl.drawArrays(gl.LINES, 0, 2);
-				//gl.drawArrays(gl.LINES, 0, verticesCount);
 
 			}
 		</script>
 	</head>
 	<body onload="initializeWebGL()">
-		<canvas id="my-canvas" width="400" height="300">
-			Your browser does not support the HTML5 canvas element.
-		</canvas>
+		<div align="center"> 
+			<canvas id="my-canvas" width="800" height="600">
+				Your browser does not support the HTML5 canvas element.
+			</canvas>
+		</div>
 	</body>
 </html>
