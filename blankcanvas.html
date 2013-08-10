@@ -24,12 +24,12 @@
 
             void main(void) {
 
-                //gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-                //vec4 texColor;
-                //texColor = texture2D(sTexture, gl_PointCoord);
-                //gl_FragColor = vec4(uColor) * texColor;
+                gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+                vec4 texColor;
+                texColor = texture2D(sTexture, gl_PointCoord);
+                gl_FragColor = vec4(uColor) * texColor;
 
-                gl_FragColor = vec4(uColor);
+                //gl_FragColor = vec4(uColor);
             } 
         </script>
         <script>
@@ -223,19 +223,19 @@
             function drawScene()
             {
                 // For drawing texture point sprite
-                //gl.enable(gl.BLEND);
-                //gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-                //gl.activeTexture(gl.TEXTURE0);
-                //gl.bindTexture(gl.TEXTURE_2D, texture);
-                //gl.uniform1i(glProgram.samplerUniform, 0);
+                gl.enable(gl.BLEND);
+                gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+                gl.activeTexture(gl.TEXTURE0);
+                gl.bindTexture(gl.TEXTURE_2D, texture);
+                gl.uniform1i(glProgram.samplerUniform, 0);
                 gl.uniform4f(glProgram.colorUniform, 0.0, 0.5, 0.5, 1.0);
 
                 vertexPositionAttribute = gl.getAttribLocation(glProgram, "aVertexPosition");
                 gl.enableVertexAttribArray(vertexPositionAttribute);
                 gl.bindBuffer(gl.ARRAY_BUFFER, lineVerticesBuffer);
                 gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
-                gl.drawArrays(gl.LINES, 0, 2);
-                //gl.drawArrays(gl.POINTS, 0, 2);
+                //gl.drawArrays(gl.LINES, 0, 2);
+                gl.drawArrays(gl.POINTS, 0, 2);
             }
         </script>
     </head>
